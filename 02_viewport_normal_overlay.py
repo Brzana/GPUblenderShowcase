@@ -1,4 +1,17 @@
-"""Overlay wektorow normalnych aktywnej siatki — bez obiektow w scenie.
+"""02 — Mesh overlay with a built-in shader (no custom GLSL yet).
+
+LECTURE STEP 2/6 — "How do I draw real data fast?"
+GOAL: Same 3-step pattern as 01, but geometry comes from the active mesh.
+CONCEPTS:
+  1. Read mesh ONCE on CPU (evaluated mesh + matrix_world), upload as
+     a LINES batch; GPU redraws it every frame for free.
+  2. POLYLINE_FLAT_COLOR = built-in shader with per-vertex color.
+     Still zero hand-written GLSL.
+  3. POST_VIEW draws in world space (arrows stick to the object).
+     HUD text uses POST_PIXEL (fixed screen position).
+TRY: Select Cube vs Suzanne, re-run — arrow count label changes.
+  Toggle wireframe: overlay stays (it is not scene geometry).
+NEXT: 03 replaces the built-in shader with your own GLSL.
 
 Uruchom skrypt z aktywnym obiektem typu Mesh. Ponowne uruchomienie usuwa
 poprzedni handler. Dane geometrii sa pobierane raz; aby odswiezyc overlay,

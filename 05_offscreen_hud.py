@@ -1,7 +1,16 @@
-"""GPUOffScreen -> GPUTexture -> HUD viewportu, bez transferu do RAM.
+"""05 — Offscreen render-to-texture HUD (no CPU readback).
 
-Demonstracja renderowania poza glownym framebufferem. Tekstura offscreen jest
-wyswietlana bezposrednio w viewportcie; nie jest wykonywany readback pikseli.
+LECTURE STEP 5/6 — "How do I compose GPU passes without the CPU?"
+GOAL: Render an animated shader into GPUOffScreen (512x320 texture),
+      then blit that texture into the viewport HUD. Pixels never touch RAM.
+CONCEPTS:
+  1. offscreen.bind() redirects drawing to a texture-backed framebuffer.
+  2. Render ONCE per timer tick (rendered_tick guard), display every redraw.
+  3. Built-in IMAGE shader displays the texture as a HUD quad anchored to
+     the TOP of the viewport (bottom slots belong to 01-04 HUDs).
+TRY: Resize the viewport — preview stays top-left (region.height math).
+NEXT: 06 (finale) — compute writes state, vertex shader reads it. Same
+      "GPU stays on GPU" idea, but for simulation instead of pixels.
 """
 
 import bpy

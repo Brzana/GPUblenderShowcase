@@ -1,64 +1,61 @@
-# Blender GPU Showcase
+# Blender GPU Showcase — from CPU bottleneck to GPU simulation
 
-Krótki zestaw demonstracyjny: viewport draw handlers, własne shadery GLSL,
-compute shader oraz tekstura offscreen. Skrypty nie dodają geometrii cząstek do
-sceny ani nie modyfikują siatek.
+Lecture-ordered demos: each script adds **one new GPU idea**.
+Full presenter script with timing in [`LECTURE.md`](LECTURE.md).
 
-## Wymagania i uruchomienie
+> Story: **CPU uploads once, GPU redraws every frame.**
 
-- Zalecany Blender **4.5+** z backendem GPU obsługującym compute. Compute API
-  zależy od wersji Blendera, sterownika i backendu; jeśli `gpu.compute` nie jest
-  dostępne, pozostałe przykłady nadal można uruchamiać osobno.
-- Otwórz plik `.py` w Blenderze: **Scripting > Text Editor > Open > Run Script**.
-- Najpierw uruchom `01_viewport_normal_overlay.py` z aktywnym obiektem Mesh.
-  Kolejne przykłady uruchamiaj osobno; ponowne uruchomienie tego samego skryptu
-  usuwa jego poprzednie draw handlery i timer.
-- `00_cpu_baseline.py` wypisuje pomiar do konsoli systemowej (Windows:
-  **Window > Toggle System Console**). Nie tworzy obiektów.
+## Requirements & running
 
-## Kolejność prezentacji
+- Blender **4.5+** recommended (compute needs `gpu.compute`, which depends
+  on Blender build, driver and backend — check on the demo machine first).
+- Open a `.py` in Blender: **Scripting > Text Editor > Open > Run Script**.
+- Re-running a script removes its draw handlers/timer (toggle). Or run
+  `99_stop_showcase.py` to stop everything at once.
+- `00` prints to the system console (Windows:
+  **Window > Toggle System Console**). It creates nothing.
 
-1. **CPU baseline** — uruchom `00_cpu_baseline.py`, pokaż czas aktualizacji
-   50 tys. stanów cząstek w Pythonie. To pomiar obliczeń, bez rysowania.
-2. **Overlay** — zaznacz siatkę i uruchom `01_viewport_normal_overlay.py`.
-   Pole przepływu i strzałki normalnych są jedną paczką GPU; nie pojawiają się
-   w Outlinerze.
-3. **Custom GLSL** — `02_viewport_raymarch.py` rysuje animowany Mandelbulb
-   bezpośrednio jako overlay ekranowy. To raymarch shader, nie materiał ani
-   pełny post-process renderu sceny.
-4. **Offscreen** — `04_offscreen_hud.py` renderuje animowaną teksturę do
-   `GPUOffScreen`, a potem wyświetla ją w HUD bez kopiowania pikseli do CPU.
-5. **Compute** — `03_compute_particle_flow.py` symuluje 102 400 cząstek
-   w compute shaderze i pobiera pozycje w vertex shaderze z tekstury.
+## Presentation order (difficulty ramps 00 → 06)
 
-### Porównanie backendów
+| Step | File | What students learn |
+|------|------|---------------------|
+| 0 | `00_cpu_baseline.py` | **Why GPU:** pure-Python integration of 50k particles, timed. No drawing. Keep the ms/frame number for the finale. |
+| 1 | `01_hello_viewport.py` | **How GPU draw works:** one triangle, builtin shader, `POST_VIEW` + `POST_PIXEL`. Zero scene objects, zero custom GLSL. |
+| 2 | `02_viewport_normal_overlay.py` | **Real data, same pattern:** active mesh → `LINES` batch with `POLYLINE_FLAT_COLOR`. Mesh read once, redrawn by GPU. Needs an active Mesh. |
+| 3 | `03_shader_toy_gradient.py` | **First custom GLSL:** fullscreen quad + `GPUShaderCreateInfo`, ~15-line animated fragment shader. Edit + re-run live. |
+| 4 | `04_viewport_raymarch.py` | **Full GLSL control:** same scaffold as 03, fragment becomes a 58-step Mandelbulb SDF raymarcher. Screen overlay, not a material. |
+| 5 | `05_offscreen_hud.py` | **Compose on GPU:** render to `GPUOffScreen` texture, blit to HUD with `IMAGE` shader. No pixel readback to CPU. |
+| 6 | `06_compute_particle_flow.py` | **Finale:** 102 400 particles in `RGBA32F` ping-pong textures. Compute writes state, vertex shader `texelFetch`es it. No readback, no particle objects. |
 
-Uruchom dwie osobne instancje Blendera i w każdej odtwórz ten sam przykład:
+Short (45 min) version: 00 → 01 → 03 → 06.
+
+## Backend comparison
+
+Run two Blender instances with the same example:
 
 ```text
 blender --gpu-backend opengl
 blender --gpu-backend vulkan
 ```
 
-Dostępność backendu zależy od kompilacji Blendera. Wersja z Metalem wymaga
-kompilacji obsługującej Metal; sprawdź `blender --help` na maszynie pokazowej.
+Backend availability depends on the build (Metal needs a Metal build;
+check `blender --help` on the demo machine).
 
-## Uczciwe zastrzeżenia techniczne
+## Honest technical caveats
 
-- W aktualnym publicznym Python API Blendera dostępny jest `gpu.compute` i
-  zapis/odczyt obrazów w compute shaderach; `gpu.types.GPUStorageBuf` nie jest
-  standardowym publicznym typem. Dlatego demo cząstek używa dwóch tekstur
-  `RGBA32F` (ping-pong), a nie SSBO. Początkowe stany i stałe UV-y są wysyłane
-  z CPU tylko raz; po inicjalizacji pozycje nie wracają do RAM.
-- 102 400 cząstek to liczba stanów symulacji, nie gwarancja określonego FPS.
-  Wynik zależy m.in. od GPU, sterownika, rozdzielczości viewportu i backendu.
-- Blender nie gwarantuje identycznego wsparcia funkcji compute na wszystkich
-  platformach i wersjach. Najpierw sprawdź demo na docelowej maszynie; dostępność
-  OpenGL/Vulkan/Metal zależy od konkretnej kompilacji i sterowników.
-- Skrypty nie obiecują „60+ FPS” — pokazuj licznik FPS/Profiler Blenderowy na
-  docelowym sprzęcie i porównuj ten sam viewport oraz ustawienia.
+- Public Blender Python API exposes `gpu.compute` and compute image
+  read/write; `gpu.types.GPUStorageBuf` is not a standard public type —
+  so the particle demo uses two `RGBA32F` textures (ping-pong), not SSBO.
+  Initial states upload from CPU once; positions never return to RAM.
+- 102 400 is a simulation-state count, not an FPS guarantee. Result
+  depends on GPU, driver, viewport resolution and backend.
+- Blender does not guarantee identical compute support everywhere.
+  Rehearse on the lecture machine first.
+- No "60+ FPS" promises — show Blender's own FPS/statistics on target
+  hardware and compare identical viewport + settings.
 
-## Zatrzymanie
+## Stopping
 
-Uruchom ponownie ten sam plik, by usunąć jego handler/timer. Możesz też zamknąć
-Blendera; zasoby GPU skryptów są zwalniane przy zamykaniu.
+Re-run the same file to remove its handler/timer, run
+`99_stop_showcase.py` to clear all, or just close Blender (script GPU
+resources are freed on close).

@@ -1,18 +1,20 @@
-"""Zatrzymuje wszystkie dema GPU showcase (01-04).
+"""Stops all GPU showcase demos (01-06).
 
-Uruchom, gdy teksty HUD nakladaja sie na siebie — np. po odpaleniu kilku
-dem naraz. Uruchomienie tego samego dema ponownie tez je wylacza, ale ten
-skrypt czysci wszystko naraz.
+Run when HUD texts overlap — e.g. after starting several demos at once.
+Re-running the same demo also disables it, but this script cleans all.
+Keeps the 00 CPU baseline out (it has no viewport handler to clean).
 """
 
 import bpy
 
 
 _KEYS = (
+    "gpu_showcase_hello_v1",
     "gpu_showcase_normal_overlay_v1",
+    "gpu_showcase_shader_toy_v1",
     "gpu_showcase_raymarch_v1",
-    "gpu_showcase_compute_particles_v1",
     "gpu_showcase_offscreen_v1",
+    "gpu_showcase_compute_particles_v1",
 )
 
 

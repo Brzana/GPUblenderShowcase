@@ -1,4 +1,17 @@
-"""Animowany, ekranowy raymarching Mandelbulba w oknie 3D Viewportu.
+"""04 — Raymarched Mandelbulb: the same scaffold as 03, heavier math.
+
+LECTURE STEP 4/6 — "What does full GLSL control buy me?"
+GOAL: Show that 03's fullscreen-quad + GPUShaderCreateInfo pattern scales
+      to a 58-step SDF raymarcher with lighting. Diff 03 vs 04 in lecture.
+CONCEPTS:
+  1. Fragment shader = raymarch loop (sphere tracing on mandelbulb()),
+     normal by finite differences, diffuse + rim lighting.
+  2. Miss rays output alpha 0 (transparent) so the scene shows through.
+  3. Cost is per-pixel: shrinking the viewport speeds it up — good live
+     demo of GPU fill-rate limits. Rotation via mouse does NOT move the
+     shader camera (overlay, not scene material).
+PREREQ: Run 03 first so students recognize the surrounding Python.
+NEXT: 05 keeps custom GLSL but renders into a texture first.
 
 To shaderowy overlay (nie material ani post-process calej sceny). Wyjscie
 shadera jest renderowane bezposrednio do viewportu przez draw handler.

@@ -1,8 +1,18 @@
-"""102 400 czastek: compute shader + ping-pong tekstur + rysowanie GPU.
+"""06 — FINALE: 102 400 particles, compute shader + ping-pong textures.
 
-Stan ma format RGBA32F: (x, y, vx, vy). CPU inicjalizuje teksture raz, a
-potem kazdy krok symulacji i odczyt pozycji przez vertex shader zostaja GPU.
-Nie ma readbacku ani obiektow czastek w scenie.
+LECTURE STEP 6/6 — "How do I simulate AND draw without the CPU?"
+GOAL: Tie the whole story together. Compare against 00's CPU number.
+CONCEPTS:
+  1. State texture RGBA32F = (x, y, vx, vy). CPU uploads initial spiral
+     ONCE; afterwards compute shader reads state_in, writes state_out.
+  2. Ping-pong: two textures swap roles each tick. No readback to RAM.
+  3. Vertex shader texelFetch()es the current state texture — position
+     lookup by UV. gl_Points drawn with viewProjectionMatrix.
+  4. One dispatch per timer tick (dispatched_tick guard) so N viewports
+     don't speed up the sim. Same force field as 00 for fair comparison.
+DEMO LINE: "00 integrated 50k particles on CPU in X ms. This integrates
+  102k on GPU without the positions ever returning to RAM."
+CLEANUP: re-run script, or run 99_stop_showcase.py.
 """
 
 import bpy

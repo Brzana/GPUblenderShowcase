@@ -1,4 +1,14 @@
-"""Punkt odniesienia: niewielki benchmark integracji czastek w czystym Pythonie.
+"""00 — CPU baseline: why bother with the GPU?
+
+LECTURE STEP 0/6 — "What problem are we solving?"
+GOAL: Measure pure-Python particle integration (no drawing) so the
+      GPU payoff in step 06 has a number attached to it.
+HOW TO PRESENT: Text Editor > Run Script, then
+  Window > Toggle System Console. Read the "ms per frame" line aloud.
+CONCEPTS: per-frame CPU loop cost grows with particle count; GIL +
+  Python overhead dominate; drawing is NOT included here on purpose.
+TRY: Lower PARTICLE_COUNT to 5_000, re-run — roughly linear scaling.
+NEXT: 01 draws on the GPU without touching the scene at all.
 
 Uruchom w Blenderze przez Text Editor > Run Script. Wynik pojawi sie w konsoli.
 Skrypt nie tworzy ani nie modyfikuje obiektow sceny.
