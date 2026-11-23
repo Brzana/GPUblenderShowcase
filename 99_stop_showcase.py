@@ -1,8 +1,8 @@
 """Stops all GPU showcase demos (01-06).
 
 Run when HUD texts overlap — e.g. after starting several demos at once.
-Re-running the same demo also disables it, but this script cleans all.
-Keeps the 00 CPU baseline out (it has no viewport handler to clean).
+Re-running a single demo also toggles it off, but this script cleans all.
+00 has no viewport handler, so there is nothing to clean for it.
 """
 
 import bpy
@@ -24,7 +24,8 @@ def _stop_one(key):
         return False
     handles = []
     if isinstance(state, dict):
-        # Format 01: osobne klucze; format 02/03/04: lista "handles".
+        # 02 used view_handle/hud_handle in older revisions;
+        # 01/03/04/05/06 use a "handles" list. Support both.
         for single in ("view_handle", "hud_handle"):
             handle = state.get(single)
             if handle is not None:
@@ -45,6 +46,12 @@ def _stop_one(key):
                 offscreen.free()
             except (ReferenceError, RuntimeError):
                 pass
+        # 06 stores ping-pong GPUTextures; dropping refs releases GPU memory.
+        for tex in state.get("textures", ()):
+            try:
+                del tex
+            except (ReferenceError, RuntimeError):
+                pass
     for handle in handles:
         try:
             bpy.types.SpaceView3D.draw_handler_remove(handle, "WINDOW")
@@ -53,15 +60,20 @@ def _stop_one(key):
     return True
 
 
-stopped = [key for key in _KEYS if _stop_one(key)]
+def main():
+    stopped = [key for key in _KEYS if _stop_one(key)]
 
-# Na koniec wymus odswiezenie wszystkich viewportow, zeby nie zostaly duchy.
-try:
-    for window in bpy.context.window_manager.windows:
-        for area in window.screen.areas:
-            if area.type == "VIEW_3D":
-                area.tag_redraw()
-except (AttributeError, ReferenceError):
-    pass
+    # Force-refresh viewports so no ghost overlays remain.
+    try:
+        for window in bpy.context.window_manager.windows:
+            for area in window.screen.areas:
+                if area.type == "VIEW_3D":
+                    area.tag_redraw()
+    except (AttributeError, ReferenceError, RuntimeError):
+        pass
 
-print("Zatrzymano: " + (", ".join(stopped) if stopped else "nic nie bylo aktywne"))
+    print("Stopped: " + (", ".join(stopped) if stopped else "nothing was running"))
+
+
+if __name__ == "__main__":
+    main()

@@ -24,6 +24,7 @@ from gpu_extras.batch import batch_for_shader
 
 
 _KEY = "gpu_showcase_shader_toy_v1"
+# HUD slot 2: title y=122, subtitle y=102 (above 01: 42/22, 02: 82/62).
 
 # Fullscreen quad: vertex positions in clip space (-1..1).
 _VERTEX = r"""
@@ -55,39 +56,62 @@ void main()
 def _remove_previous():
     state = bpy.app.driver_namespace.pop(_KEY, None)
     if not state:
-        return
+        return False
     for handle in state.get("handles", ()):
         try:
             bpy.types.SpaceView3D.draw_handler_remove(handle, "WINDOW")
         except (ReferenceError, ValueError, RuntimeError):
             pass
     timer = state.get("timer")
-    if timer and bpy.app.timers.is_registered(timer):
-        bpy.app.timers.unregister(timer)
+    if timer is not None:
+        try:
+            if bpy.app.timers.is_registered(timer):
+                bpy.app.timers.unregister(timer)
+        except (ReferenceError, ValueError, RuntimeError):
+            pass
+    return True
+
+
+def _tag_redraw():
+    try:
+        wm = bpy.context.window_manager
+    except (AttributeError, RuntimeError):
+        return
+    if not wm:
+        return
+    try:
+        for window in wm.windows:
+            for area in window.screen.areas:
+                if area.type == "VIEW_3D":
+                    area.tag_redraw()
+    except (AttributeError, ReferenceError, RuntimeError):
+        pass
 
 
 def _draw(state):
     region = bpy.context.region
     if region is None:
         return
+    shader = state["shader"]
     old_blend = gpu.state.blend_get()
     old_depth = gpu.state.depth_test_get()
     try:
         gpu.state.blend_set("ALPHA")
         gpu.state.depth_test_set("NONE")
-        state["shader"].uniform_float("time", time.perf_counter() - state["started"])
-        state["shader"].uniform_float("viewportSize", (region.width, region.height))
-        state["batch"].draw(state["shader"])
+        shader.bind()
+        shader.uniform_float("time", time.perf_counter() - state["started"])
+        shader.uniform_float("viewportSize", (region.width, region.height))
+        state["batch"].draw(shader)
     finally:
         gpu.state.blend_set(old_blend)
         gpu.state.depth_test_set(old_depth)
 
     blf.size(0, 14)
     blf.color(0, 0.35, 0.95, 1.0, 1.0)
-    blf.position(0, 22, 88, 0)
+    blf.position(0, 22, 122, 0)
     blf.draw(0, "03 SHADER TOY  |  custom GLSL gradient  |  edit + re-run")
     blf.color(0, 0.9, 0.92, 0.95, 0.9)
-    blf.position(0, 22, 68, 0)
+    blf.position(0, 22, 102, 0)
     blf.draw(0, "Same scaffold as 04 raymarch — only fragment math differs")
 
 
@@ -95,42 +119,45 @@ def _make_timer(state):
     def tick():
         if bpy.app.driver_namespace.get(_KEY) is not state:
             return None
-        wm = bpy.context.window_manager
-        if wm:
-            for window in wm.windows:
-                for area in window.screen.areas:
-                    if area.type == "VIEW_3D":
-                        area.tag_redraw()
+        _tag_redraw()
         return 1.0 / 30.0
     return tick
 
 
-_remove_previous()
-if not hasattr(gpu.types, "GPUShaderCreateInfo"):
-    raise RuntimeError("This example needs GPUShaderCreateInfo (Blender 4.5+ recommended).")
+def main():
+    if _remove_previous():
+        _tag_redraw()
+        print("03 shader toy stopped (toggle). Run again to show it.")
+        return
+    if not hasattr(gpu.types, "GPUShaderCreateInfo"):
+        raise RuntimeError("This example needs GPUShaderCreateInfo (Blender 3.x+ with GPU module).")
 
-# The recipe, line by line — point at each in lecture:
-interface = gpu.types.GPUStageInterfaceInfo("toy_interface")
-interface.smooth("VEC2", "v_uv")          # vertex -> fragment varying
-info = gpu.types.GPUShaderCreateInfo()
-info.push_constant("FLOAT", "time")        # per-frame uniform
-info.push_constant("VEC2", "viewportSize")  # per-frame uniform
-info.vertex_in(0, "VEC2", "pos")           # per-vertex input
-info.vertex_out(interface)
-info.fragment_out(0, "VEC4", "FragColor")  # per-pixel output
-info.vertex_source(_VERTEX)
-info.fragment_source(_FRAGMENT)
-shader = gpu.shader.create_from_info(info)
+    # The recipe, line by line — point at each in lecture:
+    interface = gpu.types.GPUStageInterfaceInfo("toy_interface")
+    interface.smooth("VEC2", "v_uv")          # vertex -> fragment varying
+    info = gpu.types.GPUShaderCreateInfo()
+    info.push_constant("FLOAT", "time")        # per-frame uniform
+    info.push_constant("VEC2", "viewportSize")  # per-frame uniform
+    info.vertex_in(0, "VEC2", "pos")           # per-vertex input
+    info.vertex_out(interface)
+    info.fragment_out(0, "VEC4", "FragColor")  # per-pixel output
+    info.vertex_source(_VERTEX)
+    info.fragment_source(_FRAGMENT)
+    shader = gpu.shader.create_from_info(info)
 
-batch = batch_for_shader(shader, "TRI_STRIP", {
-    "pos": ((-1.0, -1.0), (1.0, -1.0), (-1.0, 1.0), (1.0, 1.0)),
-})
+    batch = batch_for_shader(shader, "TRI_STRIP", {
+        "pos": ((-1.0, -1.0), (1.0, -1.0), (-1.0, 1.0), (1.0, 1.0)),
+    })
 
-state = {"shader": shader, "batch": batch, "started": time.perf_counter(), "handles": []}
-state["handles"].append(bpy.types.SpaceView3D.draw_handler_add(
-    _draw, (state,), "WINDOW", "POST_PIXEL"
-))
-state["timer"] = _make_timer(state)
-bpy.app.timers.register(state["timer"], first_interval=1.0 / 30.0)
-bpy.app.driver_namespace[_KEY] = state
-print("03 shader toy running. Edit _FRAGMENT, re-run to see GLSL change live.")
+    state = {"shader": shader, "batch": batch, "started": time.perf_counter(), "handles": []}
+    state["handles"].append(bpy.types.SpaceView3D.draw_handler_add(
+        _draw, (state,), "WINDOW", "POST_PIXEL"
+    ))
+    state["timer"] = _make_timer(state)
+    bpy.app.timers.register(state["timer"], first_interval=1.0 / 30.0)
+    bpy.app.driver_namespace[_KEY] = state
+    print("03 shader toy running. Edit _FRAGMENT, re-run to see GLSL change live.")
+
+
+if __name__ == "__main__":
+    main()

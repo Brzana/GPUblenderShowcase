@@ -123,16 +123,19 @@ Three recurring pieces in every file — point them out each time:
 
 - `gpu.compute` missing (old Blender/driver/backend): 06 raises with a
   clear message. Fall back to 00–05 — they don't need compute.
-- Overlapping HUD texts: run `99_stop_showcase.py`, then start one demo.
+- HUD slots are separated (01: 42/22, 02: 82/62, 03: 122/102,
+  04: 162/142, 06: 202/182, 05: top-anchored). If texts still overlap
+  (e.g. old revision running), run `99_stop_showcase.py`, then start one demo.
 - Stale overlay after selecting a new mesh: re-run 02 (by design — data
   snapshot, teaches the upload-once model).
 
 ## Backend comparison (optional 5 min)
 
-Run two Blender instances on the same machine:
+Run two Blender instances on the same machine. Check
+`blender --help` first — flag names depend on build/version
+(recent builds: Vulkan / Metal, OpenGL removed):
 
 ```text
-blender --gpu-backend opengl
 blender --gpu-backend vulkan
 ```
 
