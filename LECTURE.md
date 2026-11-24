@@ -69,7 +69,8 @@ Three recurring pieces in every file — point them out each time:
 - Run, orbit: triangle sticks in 3D (POST_VIEW). Re-run: gone (toggle).
 - Ask: *"Where is the triangle in the Outliner?"* (Nowhere — GPU only.)
 - Pitfall: drawing the wrong shader type (`2D` vs `3D`) — positions
-  interpret differently. Keep `3D_UNIFORM_COLOR` + `POST_VIEW` paired.
+  interpret differently. Keep `UNIFORM_COLOR` + `POST_VIEW` paired
+  (pre-4.0 builds called this `3D_UNIFORM_COLOR`).
 
 ### 02 — Normal overlay (12 min)
 - Same pattern as 01, but `positions` come from the evaluated mesh.
